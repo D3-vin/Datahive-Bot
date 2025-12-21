@@ -1,0 +1,15 @@
+curl_cffi
+eth-account
+eth-utils
+websockets
+aiohttp
+aiohttp-socks
+tortoise-orm
+loguru
+rich
+colorama
+pyyaml
+lxml
+aiofiles
+Jam_Twitter_API
+psutil

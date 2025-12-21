@@ -1,0 +1,76 @@
+# Threading configuration
+threads:
+  registration: 3  # Number of threads for registration process
+  farming: 100       # Number of threads for farming process
+
+# Multiprocess farming settings
+multiprocess_farming:
+  enabled: true                    # true = multiprocess mode, false = single process mode
+  max_processes: 2                 # 0 = auto-detect (CPU count - 1), or set specific number
+
+# Farm settings
+farm_settings:
+  max_devices_per_batch: 200  # Maximum devices to process per batch
+  max_concurrent_tasks: 200   # Maximum concurrent farming tasks
+  device_task_timeout: 60     # Device task timeout in seconds
+
+# Device settings
+device_settings:
+  active_devices_per_account:
+    min: 1  # Minimum devices per account
+    max: 1  # Maximum devices per account
+
+# Referral code settings (Datahive)
+referral_code_settings:
+  use_random_ref_code_from_db: true  # true = use random from database, false = use static code
+  static_referral_code: ""  # Static referral code to use (if empty, registration will proceed without referral code)
+
+delay_before_start:
+  min: 1
+  max: 1
+
+# Retry settings
+retry:
+  delay_seconds: 5  # Delay between retries (in seconds)
+  max_registration_attempts: 3  # Maximum registration attempts
+  max_farm_attempts: 3  # Maximum farm attempts
+  proxy_rotation: true  # Enable proxy rotation on exhausted retries
+
+  # Redirect email settings (optional)
+# Use this if you want to use a single email account to receive all verification emails
+redirect_settings:
+  enable: false              # Enable redirect email
+  email: ""                  # Redirect email address
+  password: ""               # Redirect email password
+  imap_server: ""            # IMAP server for redirect email
+  
+# IMAP settings for email validation
+imap_settings:
+  use_proxy_for_imap: false  # Use proxy for IMAP connections
+  timeout: 30                # Email validation timeout in seconds
+  
+  # Optional: Use single IMAP server for all accounts
+  use_single_imap:
+    enable: false
+    imap_server: "imap.gmail.com"
+  # IMAP servers mapping by email domain
+  servers:
+    gmail.com: imap.gmail.com
+    yahoo.com: imap.mail.yahoo.com
+    icloud.com: imap.mail.me.com
+    mail.ru: imap.mail.ru
+    gmx.com: imap.gmx.com
+    gmx.net: imap.gmx.net
+    gmx.de: imap.gmx.net
+    onet.pl: imap.poczta.onet.pl
+    onet.com.pl: imap.poczta.onet.pl
+    op.pl: imap.poczta.onet.pl
+    onet.eu: imap.poczta.onet.pl
+    gazeta.pl: imap.gazeta.pl
+    rambler.ru: imap.rambler.ru
+
+
+
+# Logging settings
+logging:
+  level: "INFO"  # Available levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
