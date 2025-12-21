@@ -1,9 +1,12 @@
 import asyncio
+import random
+import uuid
 from typing import Optional
 
 from app.core.base import Bot
 from app.database.models.accounts import Account
 from app.database.models.devices import Device
+from app.models.device_fingerprints import DESKTOP_USER_AGENTS, CPU_FINGERPRINTS
 from app.utils.logging import get_logger
 from app.utils.shutdown import is_shutdown_requested
 from app.utils.sleep import get_sleep_until, verify_sleep
@@ -33,8 +36,11 @@ class FarmingModule:
         
         devices = await Device.get_devices_for_account(account)
         if not devices:
-            logger.warning("No devices found for account. Devices will be created during first farming cycle.", self.email)
-            return
+            logger.info("No devices found for account. Creating devices...", self.email)
+            devices = await self._create_devices_for_account(account)
+            if not devices:
+                logger.error("Failed to create devices for account", self.email)
+                return
         
         logger.info(f"Starting farming for {len(devices)} device(s)", self.email)
         
@@ -57,8 +63,7 @@ class FarmingModule:
                         await self._schedule_device_farming(device)
                     except Exception as e:
                         logger.error(f"Error farming device {device.device_id}: {e}", self.email)
-                        continue
-                
+
                 # Small delay before next check
                 await asyncio.sleep(5)
                     
@@ -74,7 +79,7 @@ class FarmingModule:
                 else:
                     logger.error(f"Farming error: {e}", self.email)
                     await asyncio.sleep(10)
-        
+                
         await self.bot._cleanup()
         logger.info("Farming process terminated", self.email)
     
@@ -140,4 +145,50 @@ class FarmingModule:
             
         except Exception as error:
             logger.error(f"Error while farming device {device.device_id}: {error}", self.email)
+    
+    async def _create_devices_for_account(self, account: Account) -> list:
+        """Create devices for account if none exist"""
+        device_settings = self.bot.settings.device_settings.get('active_devices_per_account', {})
+        devices_per_account_min = device_settings.get('min', 1)
+        devices_per_account_max = device_settings.get('max', 1)
+        devices_count = random.randint(devices_per_account_min, devices_per_account_max)
+        
+        # Get proxies for devices
+        proxies = []
+        for _ in range(devices_count):
+            proxy = await self.bot.proxy_manager.get_proxy()
+            if proxy:
+                proxies.append(proxy)
+        
+        if not proxies:
+            logger.warning("No proxies available for device creation", self.email)
+            return []
+        
+        # Create devices
+        created_devices = []
+        user_agents = random.choices(DESKTOP_USER_AGENTS, k=len(proxies))
+        cpu_fingerprints = random.choices(CPU_FINGERPRINTS, k=len(proxies))
+        cpu_architecture = 'x86_64'
+        
+        for proxy, user_agent, cpu_fingerprint in zip(proxies, user_agents, cpu_fingerprints):
+            try:
+                browser_id = str(uuid.uuid3(uuid.NAMESPACE_DNS, proxy))
+                device = await Device.create_device_for_account(
+                    account=account,
+                    user_agent=user_agent,
+                    cpu_architecture=cpu_architecture,
+                    cpu_model=cpu_fingerprint[0],
+                    cpu_processor_count=int(cpu_fingerprint[1]),
+                    device_os=cpu_fingerprint[2],
+                    device_id=browser_id,
+                    active_device_proxy=proxy
+                )
+                created_devices.append(device)
+            except Exception as e:
+                logger.debug(f"Device creation skipped: {e}", self.email)
+        
+        if created_devices:
+            logger.info(f"Created {len(created_devices)} device(s) for account", self.email)
+        
+        return created_devices
 
