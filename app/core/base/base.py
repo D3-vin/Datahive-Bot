@@ -32,6 +32,22 @@ class Bot:
         
         self.running = True
         self.attempt_count = 0
+
+    @staticmethod
+    def _build_log_prefix(
+        process_id: Optional[int] = None,
+        account: Optional[Account] = None,
+        device: Optional[Device] = None
+    ) -> str:
+        """Compose a log prefix omitting process when not set"""
+        parts = []
+        if process_id is not None:
+            parts.append(f'Process: {process_id}')
+        if account:
+            parts.append(f'{account.email}')
+        if device:
+            parts.append(f'Device: {device.device_id}')
+        return ' | '.join(parts)
     
     async def _get_or_assign_proxy(self) -> Optional[str]:
         """Get proxy from database or assign a new one"""
@@ -160,19 +176,15 @@ class Bot:
         account = None
         if isinstance(account_data, Device):
             account = await account_data.account
+        prefix = self._build_log_prefix(process_id, account or None, account_data if isinstance(account_data, Device) else None)
+        prefix_text = f'{prefix} | ' if prefix else ''
         
         if not self.settings.proxy_rotation_enabled:
-            if process_id is not None:
-                logger.info(f'Process: {process_id} | Account: {account.email if account else self.email} | Device: {account_data.device_id if isinstance(account_data, Device) else "N/A"} | Proxy change disabled | Retrying in {self.settings.retry_delay}s.. | Attempt: {attempt + 1}/{max_attempts}..')
-            else:
-                logger.info(f'Account: {self.email} | Proxy change disabled | Retrying in {self.settings.retry_delay}s.. | Attempt: {attempt + 1}/{max_attempts}..')
+            logger.info(f'{prefix_text}Proxy change disabled | Retrying in {self.settings.retry_delay}s.. | Attempt: {attempt + 1}/{max_attempts}..')
             await asyncio.sleep(self.settings.retry_delay)
             return
         
-        if process_id is not None:
-            proxy_changed_log = f'Process: {process_id} | Account: {account.email if account else self.email} | Device: {account_data.device_id if isinstance(account_data, Device) else "N/A"} | Proxy changed | Retrying in {self.settings.retry_delay}s.. | Attempt: {attempt + 1}/{max_attempts}..'
-        else:
-            proxy_changed_log = f'Account: {self.email} | Proxy changed | Retrying in {self.settings.retry_delay}s.. | Attempt: {attempt + 1}/{max_attempts}..'
+        proxy_changed_log = f'{prefix_text}Proxy changed | Retrying in {self.settings.retry_delay}s.. | Attempt: {attempt + 1}/{max_attempts}..'
         
         new_proxy = await self._rotate_proxy()
         
@@ -258,9 +270,11 @@ class Bot:
     async def process_task(self, device: Device, account: Account, api: DatahiveAPI, process_id: Optional[int] = None):
         """Process farming task"""
         task_data = await api.request_task(device=device)
+        prefix = self._build_log_prefix(process_id, account, device)
+        prefix_text = f'{prefix} | ' if prefix else ''
         
         if task_data:
-            logger.info(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | Received task, processing..')
+            logger.info(f'{prefix_text}Received task, processing')
             task_id = task_data.get('id')
             yaml_rules = task_data.get('ruleCollection').get('yamlRules')
             target_url = task_data.get('vars').get('url')
@@ -279,14 +293,14 @@ class Bot:
             await asyncio.sleep(random.randint(2, 5))
             
             if task_json_data.get('result').get('pageData').get('fields').get('title') == '':
-                logger.info(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | Page data not extracted, submitting empty result..')
+                logger.info(f'{prefix_text}Page data not extracted, submitting empty result')
             else:
-                logger.info(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | Page data extracted, completing task..')
+                logger.info(f'{prefix_text}Page data extracted, completing task')
             
             await api.complete_task(device=device, task_id=task_id, json_data=task_json_data)
-            logger.success(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | Task completed')
+            logger.success(f'{prefix_text}Task completed')
         else:
-            logger.info(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | No task available')
+            logger.info(f'{prefix_text}No task available')
 
     async def process_farm(
         self,
@@ -298,6 +312,8 @@ class Bot:
         max_attempts = self.settings.max_farm_attempts
         account = await device.account
         api = None
+        prefix = self._build_log_prefix(process_id, account, device)
+        prefix_text = f'{prefix} | ' if prefix else ''
         
         for attempt in range(max_attempts):
             try:
@@ -305,11 +321,11 @@ class Bot:
                 api = DatahiveAPI(proxy=proxy, auth_token=account.auth_token)
                 
                 if task == 'ping':
-                    logger.info(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | Sending ping..')
+                    logger.info(f'{prefix_text}Sending ping')
                     await api.send_ping(device=device)
-                    logger.success(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | Ping sent')
+                    logger.success(f'{prefix_text}Ping sent')
                 else:
-                    logger.info(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | Requesting task..')
+                    logger.info(f'{prefix_text}Requesting task')
                     await self.process_task(device=device, account=account, api=api, process_id=process_id)
                 
                 if api:
@@ -318,31 +334,31 @@ class Bot:
                 
             except APIError as error:
                 if hasattr(error, 'error_type') and error.error_type == APIErrorType.CLIENT_UPGRADE_REQUIRED:
-                    logger.warning(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | Waiting for synchronization | Skipped until next cycle')
+                    logger.warning(f'{prefix_text}Waiting for synchronization | Skipped until next cycle')
                     if api:
                         await api.close()
                     return
                 
-                logger.error(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | Error occurred during farming (APIError): {error} | Skipped until next cycle')
+                logger.error(f'{prefix_text}Error occurred during farming (APIError): {error} | Skipped until next cycle')
                 if api:
                     await api.close()
                 return
             except Exception as error:
                 error_str = str(error)
                 if 'Proxy Authentication Required' in error_str and not self.settings.proxy_rotation_enabled:
-                    logger.error(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | Proxy authentication failed, please check your proxy settings and restart the bot | Skipped until next cycle')
+                    logger.error(f'{prefix_text}Proxy authentication failed, please check your proxy settings and restart the bot | Skipped until next cycle')
                     if api:
                         await api.close()
                     return
                 
                 is_last_attempt = attempt == max_attempts - 1
                 if is_last_attempt:
-                    logger.error(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | Max attempts reached, unable to farm | Skipped until next cycle | Last error: {str(error)}')
+                    logger.error(f'{prefix_text}Max attempts reached, unable to farm | Skipped until next cycle | Last error: {str(error)}')
                     if api:
                         await api.close()
                     return
                 
-                logger.error(f'Process: {process_id} | Account: {account.email} | Device: {device.device_id} | Error occurred during farming (Generic Exception): {error}')
+                logger.error(f'{prefix_text}Error occurred during farming (Generic Exception): {error}')
                 await self._update_account_proxy(
                     device,
                     attempt,
