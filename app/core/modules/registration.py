@@ -93,6 +93,8 @@ class RegistrationModule:
                 return False
             
             # 2. Send OTP code
+            # OTP is always sent to the registering email
+            # But if redirect is enabled, we'll search for the email in redirect mailbox
             logger.info("Sending email confirmation request...", self.email)
             await self.bot.api.send_otp(self.email)
             
@@ -164,20 +166,46 @@ class RegistrationModule:
     
     async def _validate_email(self, proxy: Optional[str] = None) -> dict:
         """Validate email via IMAP"""
-        validator = EmailValidator(
-            self.imap_server,
-            self.email,
-            self.email_password
-        )
+        settings = self.bot.settings
+        
+        # Use redirect email if enabled
+        if settings.redirect_enabled:
+            redirect = settings.redirect_settings
+            validator = EmailValidator(
+                redirect.get("imap_server", ""),
+                redirect.get("email", ""),
+                redirect.get("password", "")
+            )
+        else:
+            validator = EmailValidator(
+                self.imap_server,
+                self.email,
+                self.email_password
+            )
+        
         return await validator.validate(proxy=proxy)
     
     async def _extract_verification_link(self, proxy: Optional[str] = None) -> dict:
         """Extract verification link from email"""
-        extractor = LinkExtractor(
-            imap_server=self.imap_server,
-            email=self.email,
-            password=self.email_password
-        )
+        settings = self.bot.settings
+        
+        # Use redirect email if enabled
+        if settings.redirect_enabled:
+            redirect = settings.redirect_settings
+            # When using redirect, we connect to redirect mailbox but search for emails to the registering email
+            extractor = LinkExtractor(
+                imap_server=redirect.get("imap_server", ""),
+                email=redirect.get("email", ""),
+                password=redirect.get("password", ""),
+                redirect_email=self.email  # The email being registered
+            )
+        else:
+            extractor = LinkExtractor(
+                imap_server=self.imap_server,
+                email=self.email,
+                password=self.email_password
+            )
+        
         return await extractor.extract_link(proxy=proxy)
     
     async def _get_ref_code(self) -> Optional[str]:

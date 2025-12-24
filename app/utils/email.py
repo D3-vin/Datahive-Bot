@@ -190,8 +190,22 @@ class LinkExtractor:
         for sender in allowed_exact:
             try:
                 for msg in mailbox.fetch(AND(from_=sender), reverse=True, limit=10, mark_seen=True):
-                    if self.redirect_email and self.redirect_email != msg.to[0]:
-                        continue
+                    # If redirect_email is set, we're using redirect mailbox
+                    # Messages are sent to registering email but forwarded to redirect mailbox
+                    # So we check if message is addressed to the registering email
+                    if self.redirect_email:
+                        # Check if message is addressed to the registering email (redirect_email parameter)
+                        if msg.to and len(msg.to) > 0:
+                            # Message should be addressed to the registering email
+                            if self.redirect_email.lower() not in [t.lower() for t in msg.to]:
+                                continue
+                        else:
+                            # No recipient info, skip
+                            continue
+                    else:
+                        # Normal mode: only accept messages to the connecting email
+                        if msg.to and len(msg.to) > 0 and self.email.lower() not in [t.lower() for t in msg.to]:
+                            continue
                     
                     msg_date = msg.date.replace(tzinfo=timezone.utc) if msg.date.tzinfo is None else msg.date
                     messages.append((msg, msg_date))
@@ -203,8 +217,21 @@ class LinkExtractor:
             for msg in mailbox.fetch(reverse=True, limit=10, mark_seen=True):
                 f = (msg.from_ or '').lower()
                 if any(f.startswith(p) for p in allowed_prefix) or f in allowed_exact:
-                    if self.redirect_email and self.redirect_email != msg.to[0]:
-                        continue
+                    # If redirect_email is set, we're using redirect mailbox
+                    # Messages are sent to registering email but forwarded to redirect mailbox
+                    if self.redirect_email:
+                        # Check if message is addressed to the registering email (redirect_email parameter)
+                        if msg.to and len(msg.to) > 0:
+                            # Message should be addressed to the registering email
+                            if self.redirect_email.lower() not in [t.lower() for t in msg.to]:
+                                continue
+                        else:
+                            # No recipient info, skip
+                            continue
+                    else:
+                        # Normal mode: only accept messages to the connecting email
+                        if msg.to and len(msg.to) > 0 and self.email.lower() not in [t.lower() for t in msg.to]:
+                            continue
                     
                     msg_date = msg.date.replace(tzinfo=timezone.utc) if msg.date.tzinfo is None else msg.date
                     messages.append((msg, msg_date))
@@ -219,13 +246,9 @@ class LinkExtractor:
             return None
         
         try:
-            if self.redirect_email:
-                filtered_messages = [(msg, date) for msg, date in messages if self.redirect_email in msg.to]
-                if not filtered_messages:
-                    return None
-                latest_msg, latest_date = max(filtered_messages, key=lambda x: x[1])
-            else:
-                latest_msg, latest_date = max(messages, key=lambda x: x[1])
+            # Messages are already filtered in _collect_messages
+            # Just get the latest one
+            latest_msg, latest_date = max(messages, key=lambda x: x[1])
         except (ValueError, AttributeError):
             return None
         

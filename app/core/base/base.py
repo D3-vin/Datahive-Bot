@@ -198,11 +198,21 @@ class Bot:
     async def _validate_email(self, proxy: Optional[str] = None) -> dict:
         """Validate email via IMAP"""
         try:
-            validator = EmailValidator(
-                self.imap_server,
-                self.email,
-                self.email_password
-            )
+            # Use redirect email if enabled
+            if self.settings.redirect_enabled:
+                redirect = self.settings.redirect_settings
+                validator = EmailValidator(
+                    redirect.get("imap_server", ""),
+                    redirect.get("email", ""),
+                    redirect.get("password", "")
+                )
+            else:
+                validator = EmailValidator(
+                    self.imap_server,
+                    self.email,
+                    self.email_password
+                )
+            
             result = await validator.validate(proxy=proxy)
             return result
         except Exception as e:
@@ -217,11 +227,21 @@ class Bot:
     async def _extract_link(self, proxy: Optional[str] = None) -> dict:
         """Extract confirmation link from email"""
         try:
-            extractor = LinkExtractor(
-                imap_server=self.imap_server,
-                email=self.email,
-                password=self.email_password
-            )
+            # Use redirect email if enabled
+            if self.settings.redirect_enabled:
+                redirect = self.settings.redirect_settings
+                extractor = LinkExtractor(
+                    imap_server=redirect.get("imap_server", ""),
+                    email=redirect.get("email", ""),
+                    password=redirect.get("password", "")
+                )
+            else:
+                extractor = LinkExtractor(
+                    imap_server=self.imap_server,
+                    email=self.email,
+                    password=self.email_password
+                )
+            
             result = await extractor.extract_link(proxy=proxy)
             return result
         except Exception as e:
