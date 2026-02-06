@@ -311,12 +311,20 @@ class Bot:
             task_json_data = farm_task.build_task_json_data()
             
             await asyncio.sleep(random.randint(2, 5))
-            
-            if task_json_data.get('result').get('pageData').get('fields').get('title') == '':
+
+            try:
+                title = task_json_data['result']['pageData']['fields']['title']
+            except KeyError:
+                try:
+                    title = task_json_data['result']['output']['fields']['title']
+                except KeyError:
+                    title = ''
+
+            if title == '':
                 logger.info(f'{prefix_text}Page data not extracted, submitting empty result')
             else:
                 logger.info(f'{prefix_text}Page data extracted, completing task')
-            
+
             await api.complete_task(device=device, task_id=task_id, json_data=task_json_data)
             logger.success(f'{prefix_text}Task completed')
         else:

@@ -180,69 +180,46 @@ class FarmTask:
         
         return step_outputs
 
-    def _generate_perf_metrics(self, task_id: str):
-        """Generate performance metrics"""
-        duration = round(random.uniform(200, 900), 1)
-        base_mem = random.uniform(40, 60)
-        mem_spread = random.uniform(0.01, 0.08)
-        mem_min = round(base_mem, 2)
-        mem_max = round(base_mem + mem_spread, 2)
-        mem_avg = round((mem_min + mem_max) / 2, 2)
-        start_mem = round(mem_min - random.uniform(0.01, 0.06), 2)
-        end_mem = mem_max
-        cpu_min = round(random.uniform(3, 35), 2)
-        cpu_max = round(cpu_min + random.uniform(1, 6), 2)
-        cpu_avg = round(cpu_min + (cpu_max - cpu_min) * random.uniform(0.3, 0.7), 2)
-        start_cpu = round(random.uniform(3, min(cpu_min, 10)), 2)
-        end_cpu = 0
-        
+    @staticmethod
+    def _generate_perf_metrics(task_id: str) -> Dict[str, Any]:
+        """Generate performance metrics (CPU, memory, duration) as in sniffer"""
         return {
-            'jobId': task_id,
-            'duration': duration,
-            'statistics': {
-                'cpu': {'min': cpu_min, 'max': cpu_max, 'avg': cpu_avg},
-                'memory': {'min': mem_min, 'max': mem_max, 'avg': mem_avg}
-            },
-            'metrics': {
-                'start': {'cpu': start_cpu, 'memory': start_mem},
-                'end': {'cpu': end_cpu, 'memory': end_mem}
+            'cpuUsage': round(random.uniform(10.0, 30.0), 2),
+            'memoryUsage': round(random.uniform(50.0, 150.0), 2),
+            'duration': round(random.uniform(1.5, 5.0), 2)
+        }
+
+    def build_task_json_data(self, extension: Optional[str] = None) -> Dict[str, Any]:
+        """Build final JSON for task submission (logic aligned with sniffer)"""
+        empty_page_data = {
+            'pageData': {
+                'fields': {
+                    'title': '',
+                    'createdAt': '',
+                    'question': '',
+                    'answers': []
+                }
             }
         }
 
-    def build_task_json_data(self, context: Optional[Dict[str, Any]] = None):
-        """Build JSON data for task"""
         if self.target_url_html is None:
-            step_outputs = {
-                'pageData': {
-                    'fields': {
-                        'title': '',
-                        'createdAt': '',
-                        'question': '',
-                        'answers': []
-                    }
-                }
-            }
+            context = {}
+            step_outputs = empty_page_data
         else:
             try:
-                step_outputs = self.run_yaml_rules_on_html()
+                context = self.run_yaml_rules_on_html()
+                step_outputs = context
             except Exception:
-                step_outputs = {
-                    'pageData': {
-                        'fields': {
-                            'title': '',
-                            'createdAt': '',
-                            'question': '',
-                            'answers': []
-                        }
-                    }
-                }
-        
+                context = {}
+                step_outputs = empty_page_data
+
         perf_metrics = self._generate_perf_metrics(self.task_id)
-        step_outputs['perfMetrics'] = perf_metrics
-        
+
         return {
             'result': step_outputs,
-            'metadata': perf_metrics,
-            'context': context or {}
+            'metadata': {
+                'perfMetrics': perf_metrics
+            },
+            'context': context
         }
 

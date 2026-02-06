@@ -30,7 +30,7 @@ class DatahiveAPI(BaseAPIClient):
         """Send OTP code to email"""
         headers = {
             'accept': '*/*',
-            'accept-language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
+            'accept-language': 'ru,en-US;q=0.9,en;q=0.8',
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xa3pqdmZkdWRzZWdnaWhmdW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MjgyNDEsImV4cCI6MjA3NDEwNDI0MX0.jWIydqUPT70Y8A7ElWXpHu9qNJiCWW3zfxda9-Bso38',
             'authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xa3pqdmZkdWRzZWdnaWhmdW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MjgyNDEsImV4cCI6MjA3NDEwNDI0MX0.jWIydqUPT70Y8A7ElWXpHu9qNJiCWW3zfxda9-Bso38',
             'content-type': 'application/json;charset=UTF-8',
@@ -74,7 +74,7 @@ class DatahiveAPI(BaseAPIClient):
         """Authenticate using token"""
         headers = {
             'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8',
             'Connection': 'keep-alive',
             'Content-Type': 'application/json',
             'Origin': 'https://dashboard.datahive.ai',
@@ -97,7 +97,7 @@ class DatahiveAPI(BaseAPIClient):
         """Complete registration with optional referral code"""
         headers = {
             'accept': 'application/json, text/plain, */*',
-            'accept-language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
+            'accept-language': 'ru,en-US;q=0.9,en;q=0.8',
             'authorization': f'Bearer {self.auth_token}',
             'origin': 'https://dashboard.datahive.ai',
             'referer': 'https://dashboard.datahive.ai/',
@@ -120,7 +120,7 @@ class DatahiveAPI(BaseAPIClient):
         """Get user information"""
         headers = {
             'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8',
             'Authorization': f'Bearer {self.auth_token}',
             'Connection': 'keep-alive',
             'Origin': 'https://dashboard.datahive.ai',
@@ -138,7 +138,7 @@ class DatahiveAPI(BaseAPIClient):
         """Get user referral code"""
         headers = {
             'accept': 'application/json, text/plain, */*',
-            'accept-language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
+            'accept-language': 'ru,en-US;q=0.9,en;q=0.8',
             'authorization': f'Bearer {self.auth_token}',
             'origin': 'https://dashboard.datahive.ai',
             'referer': 'https://dashboard.datahive.ai/',
@@ -156,13 +156,15 @@ class DatahiveAPI(BaseAPIClient):
         """Send ping with device information"""
         headers = {
             'Accept': '*/*',
-            'Accept-Language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8',
             'Connection': 'keep-alive',
             'Origin': 'chrome-extension://bonfdkhbkkdoipfojcnimjagphdnfedb',
             'User-Agent': device.user_agent,
             'authorization': f'Bearer {self.auth_token}',
             'content-type': 'application/json',
-            'x-app-version': '0.2.4',
+            'x-app-version': '0.2.5',
+            'x-device-name': 'windows pc',
+            'x-device-model': 'PC x86 - Chrome 142',
             'x-cpu-architecture': device.cpu_architecture,
             'x-cpu-model': device.cpu_model,
             'x-cpu-processor-count': str(device.cpu_processor_count),
@@ -171,7 +173,7 @@ class DatahiveAPI(BaseAPIClient):
             'x-device-type': 'extension',
             'x-s': 'f',
             'x-user-agent': device.user_agent,
-            'x-user-language': 'uk-UA'
+            'x-user-language': 'ru'
         }
         return await self.send_request(
             request_type='POST',
@@ -184,12 +186,14 @@ class DatahiveAPI(BaseAPIClient):
         """Request task for execution (API endpoint uses 'job')"""
         headers = {
             'Accept': '*/*',
-            'Accept-Language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8',
             'Connection': 'keep-alive',
             'User-Agent': device.user_agent,
             'authorization': f'Bearer {self.auth_token}',
             'content-type': 'application/json',
-            'x-app-version': '0.2.4',
+            'x-app-version': '0.2.5',
+            'x-device-name': 'windows pc',
+            'x-device-model': 'PC x86 - Chrome 142',
             'x-cpu-architecture': device.cpu_architecture,
             'x-cpu-model': device.cpu_model,
             'x-cpu-processor-count': str(device.cpu_processor_count),
@@ -198,7 +202,7 @@ class DatahiveAPI(BaseAPIClient):
             'x-device-type': 'extension',
             'x-s': 'f',
             'x-user-agent': device.user_agent,
-            'x-user-language': 'uk-UA'
+            'x-user-language': 'ru'
         }
         return await self.send_request(
             request_type='GET',
@@ -211,13 +215,15 @@ class DatahiveAPI(BaseAPIClient):
         """Complete task execution (API endpoint uses 'job')"""
         headers = {
             'Accept': '*/*',
-            'Accept-Language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8',
             'Connection': 'keep-alive',
             'Origin': 'chrome-extension://bonfdkhbkkdoipfojcnimjagphdnfedb',
             'User-Agent': device.user_agent,
             'authorization': f'Bearer {self.auth_token}',
             'content-type': 'application/json',
-            'x-app-version': '0.2.4',
+            'x-app-version': '0.2.5',
+            'x-device-name': 'windows pc',
+            'x-device-model': 'PC x86 - Chrome 142',
             'x-cpu-architecture': device.cpu_architecture,
             'x-cpu-model': device.cpu_model,
             'x-cpu-processor-count': str(device.cpu_processor_count),
@@ -226,7 +232,7 @@ class DatahiveAPI(BaseAPIClient):
             'x-device-type': 'extension',
             'x-s': 'f',
             'x-user-agent': device.user_agent,
-            'x-user-language': 'uk-UA'
+            'x-user-language': 'ru'
         }
         return await self.send_request(
             request_type='POST',
@@ -241,7 +247,7 @@ class DatahiveAPI(BaseAPIClient):
         try:
             headers = {
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-                'Accept-Language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Accept-Language': 'ru,en-US;q=0.9,en;q=0.8',
                 'Connection': 'keep-alive',
                 'Referer': url,
                 'User-Agent': self.user_agent
